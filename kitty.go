@@ -1,49 +1,12 @@
 package main
 
-import "fmt"
-import "os"
-import "io/ioutil"
-import "net/http"
-import "strings"
-import "errors"
-
-// TomcatManager is data type for tomcat manager configuration
-type TomcatManager struct {
-	host     string
-	username string
-	password string
-}
-
-// String functon for TomcatManager
-func (t TomcatManager) String() string {
-	passwordOutput := t.password != ""
-	return fmt.Sprintf("host '%s' username '%s' password? %t\n", t.host, t.username, passwordOutput)
-}
-
-// CreateManager creates a TomcatManager
-func CreateManager(trimmedLine string) (result *TomcatManager, err error) {
-	items := strings.Split(trimmedLine, ";")
-	if len(items) != 3 {
-		return nil, errors.New("lines must be formatted as hostname;user;password, but found " + trimmedLine)
-	}
-	config := TomcatManager{host: items[0] + "manager/text/list", username: items[1], password: items[2]}
-	fmt.Printf("%s\n", config)
-	return &config, nil
-}
-
-// GetStatus gets the status of a TomcatManager
-func (t TomcatManager) GetStatus() {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", t.host, nil)
-	req.SetBasicAuth(t.username, t.password)
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("Error on request.", err)
-		os.Exit(1)
-	}
-	text, err := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(text))
-}
+import (
+	"fmt"
+	"github.com/cbonitz/gokitty/tomcat"
+	"io/ioutil"
+	"os"
+	"strings"
+)
 
 func main() {
 	if len(os.Args) != 2 {
@@ -58,11 +21,11 @@ func main() {
 		panic(err)
 	}
 	lines := strings.Split(string(content), "\n")
-	var hosts []*TomcatManager
+	var hosts []*tomcat.Manager
 	for _, line := range lines {
 		trimmed := strings.Trim(line, "\r")
 		if len(trimmed) > 0 {
-			config, err := CreateManager(trimmed)
+			config, err := tomcat.CreateManager(trimmed)
 			if err != nil {
 				fmt.Println("Error: ", err.Error())
 				os.Exit(1)
@@ -71,8 +34,18 @@ func main() {
 			}
 		}
 	}
-
+	var apps []*tomcat.Application
 	for _, host := range hosts {
-		host.GetStatus()
+		fmt.Printf("Getting status for %s\n", host)
+		hostApps, err := host.GetStatus()
+		if err != nil {
+			cat := *host
+			fmt.Printf("Error on host %s: %s\n", cat.Host, err.Error())
+		} else {
+			apps = append(apps, hostApps...)
+		}
+	}
+	for _, app := range apps {
+		fmt.Println(app)
 	}
 }
