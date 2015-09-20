@@ -13,7 +13,7 @@ func main() {
 
 	// Parse trivial command line arguments
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: gokitty <config-file> [json-file]")
+		fmt.Println("Usage: catisland <config-file> [json-file]")
 		os.Exit(1)
 	}
 
