@@ -31,6 +31,20 @@ func CreateManager(trimmedLine string) (result *TomcatManager, err error) {
 	return &config, nil
 }
 
+// GetStatus gets the status of a TomcatManager
+func (t TomcatManager) GetStatus() {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", t.host, nil)
+	req.SetBasicAuth(t.username, t.password)
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error on request.", err)
+		os.Exit(1)
+	}
+	text, err := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(text))
+}
+
 func main() {
 	if len(os.Args) != 2 {
 		fmt.Println("Usage: gokitty <config-file>")
@@ -58,16 +72,7 @@ func main() {
 		}
 	}
 
-	client := &http.Client{}
 	for _, host := range hosts {
-		req, err := http.NewRequest("GET", host.host, nil)
-		req.SetBasicAuth(host.username, host.password)
-		resp, err := client.Do(req)
-		if err != nil {
-			fmt.Println("Error on request.", err)
-			os.Exit(1)
-		}
-		text, err := ioutil.ReadAll(resp.Body)
-		fmt.Println(string(text))
+		host.GetStatus()
 	}
 }
