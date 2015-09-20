@@ -3,6 +3,7 @@ package main
 import "fmt"
 import "os"
 import "io/ioutil"
+import "net/http"
 import "strings"
 
 func main() {
@@ -34,5 +35,17 @@ func main() {
 			fmt.Printf("host '%s' user '%s' password '%s'\n", config["host"], config["user"], config["password"])
 			hosts = append(hosts, config)
 		}
+	}
+	client := &http.Client{}
+	for _, host := range hosts {
+		req, err := http.NewRequest("GET", host["host"], nil)
+		req.SetBasicAuth(host["user"], host["password"])
+		resp, err := client.Do(req)
+		if err != nil {
+			fmt.Println("Error on request.", err)
+			os.Exit(1)
+		}
+		text, err := ioutil.ReadAll(resp.Body)
+		fmt.Println(string(text))
 	}
 }
