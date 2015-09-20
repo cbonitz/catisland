@@ -25,7 +25,6 @@ func CreateManager(trimmedLine string) (result *Manager, err error) {
 	return &config, nil
 }
 
-// String function for Manager
 func (t Manager) String() string {
 	passwordOutput := t.password != ""
 	return fmt.Sprintf("host '%s' username '%s' password? %t", t.Host, t.username, passwordOutput)
@@ -33,6 +32,7 @@ func (t Manager) String() string {
 
 // GetStatus gets the status of a Manager
 func (t Manager) GetStatus() (result []*Application, err error) {
+	// Tomcat manager wants a GET call with basic auth to a particular URL
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", t.Host+"/manager/text/list", nil)
 	req.SetBasicAuth(t.username, t.password)
@@ -40,6 +40,8 @@ func (t Manager) GetStatus() (result []*Application, err error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// It returns a status code 200 on success
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("Got status %d - %s", resp.StatusCode, resp.Status)
 	}
@@ -49,9 +51,13 @@ func (t Manager) GetStatus() (result []*Application, err error) {
 	}
 	text := string(rawBody)
 	lines := strings.Split(text, "\n")
+
+	// The first line starts with OK
 	if !strings.HasPrefix(lines[0], "OK") {
 		return nil, errors.New("Got non-OK response: " + lines[0])
 	}
+
+	// Parse applications and return them
 	for _, line := range lines[1:] {
 		if len(line) == 0 {
 			continue

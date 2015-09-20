@@ -9,17 +9,22 @@ import (
 )
 
 func main() {
+
+	// Parse trivial command line arguments
 	if len(os.Args) != 2 {
 		fmt.Println("Usage: gokitty <config-file>")
 		os.Exit(1)
 	}
 
+	// Read the configuration
 	configFile := os.Args[1]
 	fmt.Println("Reading from config file", configFile)
 	content, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		panic(err)
 	}
+
+	// Each line should describe a tomcat manager
 	lines := strings.Split(string(content), "\n")
 	var hosts []*tomcat.Manager
 	for _, line := range lines {
@@ -34,6 +39,8 @@ func main() {
 			}
 		}
 	}
+
+	// Get the running applications from the Tomcats
 	var apps []*tomcat.Application
 	for _, host := range hosts {
 		fmt.Printf("Getting status for %s\n", host)
@@ -45,6 +52,8 @@ func main() {
 			apps = append(apps, hostApps...)
 		}
 	}
+
+	// Show them to the user
 	for _, app := range apps {
 		fmt.Println(app)
 	}
