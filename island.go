@@ -1,8 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/cbonitz/gokitty/tomcat"
+	"github.com/cbonitz/catisland/tomcat"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -11,8 +12,8 @@ import (
 func main() {
 
 	// Parse trivial command line arguments
-	if len(os.Args) != 2 {
-		fmt.Println("Usage: gokitty <config-file>")
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: gokitty <config-file> [json-file]")
 		os.Exit(1)
 	}
 
@@ -56,5 +57,15 @@ func main() {
 	// Show them to the user
 	for _, app := range apps {
 		fmt.Println(app)
+	}
+
+	// JSON-serialize to file, if desired
+	if len(os.Args) == 3 {
+		jsonSerialized, _ := json.MarshalIndent(apps, "", "  ")
+		err := ioutil.WriteFile(os.Args[2], []byte(jsonSerialized), 0777)
+		if err != nil {
+			fmt.Printf("Error writing JSON: %s\n", err)
+			os.Exit(1)
+		}
 	}
 }
