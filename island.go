@@ -31,7 +31,7 @@ func main() {
 	for _, line := range lines {
 		trimmed := strings.Trim(line, "\r")
 		if len(trimmed) > 0 {
-			config, err := tomcat.CreateManager(trimmed)
+			config, err := tomcat.NewManager(trimmed)
 			if err != nil {
 				fmt.Println("Error: ", err.Error())
 				os.Exit(1)
@@ -45,7 +45,7 @@ func main() {
 	var apps []*tomcat.Application
 	for _, host := range hosts {
 		fmt.Printf("Getting status for %s\n", host)
-		hostApps, err := host.GetStatus()
+		hostApps, err := host.GetStatus(tomcat.GetApplicationList)
 		if err != nil {
 			cat := *host
 			fmt.Printf("Error on host %s: %s\n", cat.Host, err.Error())
