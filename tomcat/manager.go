@@ -16,12 +16,19 @@ type Manager struct {
 }
 
 // CreateManager creates a Manager
-func CreateManager(trimmedLine string) (result *Manager, err error) {
+func CreateManager(line string) (result *Manager, err error) {
+	trimmedLine := strings.TrimSpace(line)
 	items := strings.Split(trimmedLine, ";")
 	if len(items) != 3 {
 		return nil, errors.New("lines must be formatted as hostname;user;password, but found " + trimmedLine)
 	}
-	config := Manager{Host: items[0], username: items[1], password: items[2]}
+	host := strings.TrimSpace(items[0])
+	username := strings.TrimSpace(items[1])
+	password := strings.TrimSpace(items[2])
+	if len(host) == 0 || len(username) == 0 || len(password) == 0 {
+		return nil, errors.New("host, username and passwords must be nonempty")
+	}
+	config := Manager{Host: host, username: username, password: password}
 	return &config, nil
 }
 
