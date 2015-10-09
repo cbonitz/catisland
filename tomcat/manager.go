@@ -52,6 +52,7 @@ func (t Manager) GetStatus() (result []*Application, err error) {
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("Got status %d - %s", resp.StatusCode, resp.Status)
 	}
+	defer resp.Body.Close()
 	rawBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
