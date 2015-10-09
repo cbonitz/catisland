@@ -52,6 +52,9 @@ func TestGetterErrorHandling(t *testing.T) {
 	if err == nil {
 		t.Error("Manager should return an error when loading data fails")
 	}
+	if !strings.Contains(err.Error(), "http://example.com") {
+		t.Error("Error should contain hostname when data loading fails")
+	}
 }
 
 func TestResultParsing(t *testing.T) {
@@ -91,6 +94,9 @@ and this is the reason`
 	}
 	if !strings.Contains(err.Error(), responseBody) {
 		t.Error("Error should be passed on")
+	}
+	if !strings.Contains(err.Error(), "http://example.com") {
+		t.Error("Error message should contain hostname.")
 	}
 	if res != nil {
 		t.Error("Should not have gotten a result on response indicating failure")

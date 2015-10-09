@@ -14,7 +14,6 @@ type Application struct {
 
 // createApplication parses a Tomcat manager status line into an Application struct
 func createApplication(manager Manager, line string) (app *Application, err error) {
-	fmt.Printf(line)
 	parts := strings.Split(line, ":")
 	return &Application{Host: manager.Host, Path: parts[0], State: parts[1]}, nil
 }

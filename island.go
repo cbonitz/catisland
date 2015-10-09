@@ -40,25 +40,50 @@ func main() {
 			}
 		}
 	}
-
+	fmt.Printf("Getting results from %d hosts.\n", len(hosts))
 	// Get the running applications from the Tomcats
-	var apps []*tomcat.Application
-	for _, host := range hosts {
-		fmt.Printf("Getting status for %s\n", host)
-		hostApps, err := host.GetStatus(tomcat.GetApplicationList)
-		if err != nil {
-			cat := *host
-			fmt.Printf("Error on host %s: %s\n", cat.Host, err.Error())
-		} else {
-			apps = append(apps, hostApps...)
+	errs := make(chan error, 100)
+	results := make(chan []*tomcat.Application, 100)
+	limiter := make(chan int, 5)
+	go func() {
+		for _, host := range hosts {
+			limiter <- 1
+			go func(host *tomcat.Manager) {
+				hostApps, err := host.GetStatus(tomcat.GetApplicationList)
+				if err != nil {
+					errs <- err
+				} else {
+					results <- hostApps
+				}
+				<-limiter
+			}(host)
+		}
+	}()
+	appMap := make(map[string]*tomcat.Application)
+	for i := range hosts {
+		select {
+		case err := <-errs:
+			fmt.Printf("Error: %s\n", err.Error())
+		case hostApps := <-results:
+			for _, app := range hostApps {
+				appRepresentation := app.String()
+				if _, ok := appMap[appRepresentation]; !ok {
+					appMap[appRepresentation] = app
+				}
+			}
+		}
+		if i%100 == 99 {
+			fmt.Print(".")
 		}
 	}
-
+	fmt.Println("Finished collecting results.")
+	apps := []*tomcat.Application{}
 	// Show them to the user
-	for _, app := range apps {
-		fmt.Println(app)
+	for key, app := range appMap {
+		fmt.Println(key)
+		apps = append(apps, app)
 	}
-
+	fmt.Printf("%d apps total.\n", len(apps))
 	// JSON-serialize to file, if desired
 	if len(os.Args) == 3 {
 		jsonSerialized, _ := json.MarshalIndent(apps, "", "  ")

@@ -54,7 +54,7 @@ func GetApplicationList(t *Manager) (result string, err error) {
 
 	// It returns a status code 200 on success
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("Got status %d - %s", resp.StatusCode, resp.Status)
+		return "", fmt.Errorf("Got status '%s'", resp.Status)
 	}
 	defer resp.Body.Close()
 	rawBody, err := ioutil.ReadAll(resp.Body)
@@ -68,13 +68,15 @@ func GetApplicationList(t *Manager) (result string, err error) {
 func (t Manager) GetStatus(getter StringGetter) (result []*Application, err error) {
 	text, err := getter(&t)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"While getting result from %s: %s",
+			t.Host, err.Error())
 	}
 	lines := strings.Split(text, "\n")
 
 	// The first line starts with OK
 	if !strings.HasPrefix(lines[0], "OK") {
-		return nil, errors.New("Got non-OK response: " + text)
+		return nil, fmt.Errorf("Non-OK response from %s: %s", t.Host, text)
 	}
 
 	// Parse applications and return them
