@@ -44,7 +44,7 @@ func main() {
 	// Get the running applications from the Tomcats
 	errs := make(chan error, 100)
 	results := make(chan []*tomcat.Application, 100)
-	limiter := make(chan int, 5)
+	limiter := make(chan int, 10)
 	go func() {
 		for _, host := range hosts {
 			limiter <- 1
@@ -76,7 +76,7 @@ func main() {
 			fmt.Print(".")
 		}
 	}
-	fmt.Println("Finished collecting results.")
+	fmt.Println("\nFinished collecting results.")
 	apps := []*tomcat.Application{}
 	// Show them to the user
 	for key, app := range appMap {
