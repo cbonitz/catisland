@@ -15,6 +15,8 @@ var okResponse = `OK - Listed applications for virtual host localhost
 /host-manager:running:0:host-manager
 /manager:running:1:manager
 /docs:running:0:docs`
+var failResponse = `FAIL - something went wrong
+and this is the reason`
 
 func TestNewManagerValidInput(t *testing.T) {
 	// create form valid but un-trimmed line
@@ -67,7 +69,7 @@ func TestGetterErrorHandling(t *testing.T) {
 	}
 }
 
-func TestResultParsing(t *testing.T) {
+func TestSuccessfulResultParsing(t *testing.T) {
 	manager, _ := NewManager("http://example.com;username;password")
 	res, err := manager.GetStatus(func(m *Manager) (result string, err error) {
 		// success response as shown in
@@ -85,12 +87,11 @@ func TestResultParsing(t *testing.T) {
 	}
 }
 
-func TestErrorParsing(t *testing.T) {
+func TestErrorResultParsing(t *testing.T) {
 	manager, _ := NewManager("http://example.com;username;password")
 	// error response as described in
 	// https://tomcat.apache.org/tomcat-8.0-doc/manager-howto.html#List_Currently_Deployed_Applications
-	responseBody := `FAIL - something went wrong
-and this is the reason`
+	responseBody := failResponse
 	res, err := manager.GetStatus(func(m *Manager) (result string, err error) {
 		return responseBody, nil
 	})
@@ -121,17 +122,9 @@ func TestIntegrationSuccess(t *testing.T) {
 	}
 }
 
-func TestIntegrationFail(t *testing.T) {
-	successServer := createServer(404, "404 not found")
-	defer successServer.Close()
-	m, _ := NewManager(successServer.URL + ";user;password")
-	_, err := m.GetStatus(GetApplicationList)
-	if err == nil {
-		t.Error("Should have gotten error for status 404")
-	}
-	if !strings.Contains(err.Error(), "404") {
-		t.Errorf("Status code should be in error message, but was '%s'", err.Error())
-	}
+func TestIntegrationCallFailed(t *testing.T) {
+	assertHTTPError(t, "404", 404, "not found", "403")
+	assertHTTPError(t, "Application failure", 200, failResponse, failResponse)
 }
 
 func createServer(statusCode int, response string) *httptest.Server {
@@ -139,6 +132,20 @@ func createServer(statusCode int, response string) *httptest.Server {
 		w.WriteHeader(statusCode)
 		fmt.Fprintln(w, response)
 	}))
+}
+
+func assertHTTPError(t *testing.T, description string, statusCode int, response, errorMustContain string) {
+	server := createServer(statusCode, response)
+	defer server.Close()
+	m, _ := NewManager(server.URL + ";user;password")
+	_, err := m.GetStatus(GetApplicationList)
+	if err == nil {
+		t.Error(description + "should have caused an error.")
+	}
+	if !strings.Contains(err.Error(), errorMustContain) {
+		t.Errorf("'%s' should be in error message, but was '%s'",
+			errorMustContain, err.Error())
+	}
 }
 
 func assertError(t *testing.T, line string, attempt string) {
