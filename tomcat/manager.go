@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // Manager is data type for tomcat manager configuration
@@ -47,21 +48,35 @@ func GetApplicationList(t *Manager) (result string, err error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", t.Host+"/manager/text/list", nil)
 	req.SetBasicAuth(t.username, t.password)
-	resp, err := client.Do(req)
-	if err != nil {
+	results := make(chan string, 1)
+	errors := make(chan error, 1)
+	go func() {
+		resp, err := client.Do(req)
+		if err != nil {
+			errors <- err
+			return
+		}
+		// It returns a status code 200 on success
+		if resp.StatusCode != 200 {
+			errors <- fmt.Errorf("Got status '%s'", resp.Status)
+			return
+		}
+		defer resp.Body.Close()
+		rawBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			errors <- err
+			return
+		}
+		results <- string(rawBody)
+	}()
+	select {
+	case err := <-errors:
 		return "", err
+	case result := <-results:
+		return result, nil
+	case <-time.After(time.Second * 10):
+		return "", fmt.Errorf("Timeout after %d seconds", 10)
 	}
-
-	// It returns a status code 200 on success
-	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("Got status '%s'", resp.Status)
-	}
-	defer resp.Body.Close()
-	rawBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	return string(rawBody), nil
 }
 
 // GetStatus gets the status of a Manager

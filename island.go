@@ -59,11 +59,13 @@ func main() {
 			}(host)
 		}
 	}()
+	errors := 0
 	appMap := make(map[string]*tomcat.Application)
 	for i := range hosts {
 		select {
 		case err := <-errs:
 			fmt.Printf("Error: %s\n", err.Error())
+			errors++
 		case hostApps := <-results:
 			for _, app := range hostApps {
 				appRepresentation := app.String()
@@ -83,7 +85,7 @@ func main() {
 		fmt.Println(key)
 		apps = append(apps, app)
 	}
-	fmt.Printf("%d apps total.\n", len(apps))
+	fmt.Printf("%d app(s) total, %d error(s).\n", len(apps), errors)
 	// JSON-serialize to file, if desired
 	if len(os.Args) == 3 {
 		jsonSerialized, _ := json.MarshalIndent(apps, "", "  ")

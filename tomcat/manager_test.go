@@ -123,7 +123,7 @@ func TestIntegrationSuccess(t *testing.T) {
 }
 
 func TestIntegrationCallFailed(t *testing.T) {
-	assertHTTPError(t, "404", 404, "not found", "403")
+	assertHTTPError(t, "404", 404, "not found", "404")
 	assertHTTPError(t, "Application failure", 200, failResponse, failResponse)
 }
 
