@@ -2,9 +2,19 @@ package tomcat
 
 import (
 	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
+
+var okResponse = `OK - Listed applications for virtual host localhost
+/:running:0:ROOT
+/examples:running:0:examples
+/host-manager:running:0:host-manager
+/manager:running:1:manager
+/docs:running:0:docs`
 
 func TestNewManagerValidInput(t *testing.T) {
 	// create form valid but un-trimmed line
@@ -62,12 +72,7 @@ func TestResultParsing(t *testing.T) {
 	res, err := manager.GetStatus(func(m *Manager) (result string, err error) {
 		// success response as shown in
 		// https://tomcat.apache.org/tomcat-8.0-doc/manager-howto.html#List_Currently_Deployed_Applications
-		responseBody := `OK - Listed applications for virtual host localhost
-/:running:0:ROOT
-/examples:running:0:examples
-/host-manager:running:0:host-manager
-/manager:running:1:manager
-/docs:running:0:docs`
+		responseBody := okResponse
 		return responseBody, nil
 	})
 	if err != nil {
@@ -101,6 +106,39 @@ and this is the reason`
 	if res != nil {
 		t.Error("Should not have gotten a result on response indicating failure")
 	}
+}
+
+func TestIntegrationSuccess(t *testing.T) {
+	successServer := createServer(200, okResponse)
+	defer successServer.Close()
+	m, _ := NewManager(successServer.URL + ";user;password")
+	apps, err := m.GetStatus(GetApplicationList)
+	if err != nil {
+		t.Error("Should have parsed result, but got error. ", err.Error())
+	}
+	if len(apps) != 5 {
+		t.Error("Should have gotten 5 results but got ", len(apps))
+	}
+}
+
+func TestIntegrationFail(t *testing.T) {
+	successServer := createServer(404, "404 not found")
+	defer successServer.Close()
+	m, _ := NewManager(successServer.URL + ";user;password")
+	_, err := m.GetStatus(GetApplicationList)
+	if err == nil {
+		t.Error("Should have gotten error for status 404")
+	}
+	if !strings.Contains(err.Error(), "404") {
+		t.Errorf("Status code should be in error message, but was '%s'", err.Error())
+	}
+}
+
+func createServer(statusCode int, response string) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(statusCode)
+		fmt.Fprintln(w, response)
+	}))
 }
 
 func assertError(t *testing.T, line string, attempt string) {

@@ -76,7 +76,7 @@ func (t Manager) GetStatus(getter StringGetter) (result []*Application, err erro
 
 	// The first line starts with OK
 	if !strings.HasPrefix(lines[0], "OK") {
-		return nil, fmt.Errorf("Non-OK response from %s: %s", t.Host, text)
+		return nil, fmt.Errorf("Non-OK response from %s: '%s'", t.Host, text)
 	}
 
 	// Parse applications and return them

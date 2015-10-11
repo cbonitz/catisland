@@ -44,7 +44,7 @@ func main() {
 	// Get the running applications from the Tomcats
 	errs := make(chan error, 100)
 	results := make(chan []*tomcat.Application, 100)
-	limiter := make(chan int, 10)
+	limiter := make(chan int, 5)
 	go func() {
 		for _, host := range hosts {
 			limiter <- 1
