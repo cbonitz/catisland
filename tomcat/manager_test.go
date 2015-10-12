@@ -20,18 +20,23 @@ and this is the reason`
 
 func TestNewManagerValidInput(t *testing.T) {
 	// create form valid but un-trimmed line
-	manager, err := NewManager(" http://example.com;user;password ")
+	manager, err := NewManager("http://example.com;user;password")
 	if manager == nil {
 		t.Error("Constructor must return a value.")
 	}
 	if err != nil {
 		t.Error("Creating a manager from a valid config line must not return an error")
 	}
+	if manager.Host != "http://example.com" || manager.username != "user" || manager.password != "password" {
+		t.Error("Entries must be parsed correctly")
+	}
+}
+
+func TestNewManagerUntrimmedInput(t *testing.T) {
+	// create form valid but un-trimmed line
+	manager, _ := NewManager(" http://example.com;user;password ")
 	if manager.password != "password" || manager.Host != "http://example.com" {
 		t.Error("Line must be trimmed")
-	}
-	if manager.username != "user" {
-		t.Error("User must be parsed")
 	}
 }
 
